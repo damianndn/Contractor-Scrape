@@ -58,17 +58,22 @@ investorChecked.click()
 
 #text_box = driver.find_element(by=By.NAME, value="my-text")
 search_box = driver.find_element(by=By.NAME,value="keyword")
-with open("test.txt","r",encoding="utf8") as f:
-    keyword = f.readline()
-    starttime = f.readline()
-    print(f"Key word is {keyword}")
-    print(f"...starting from {starttime}...")
-    try:
-        datetime.datetime.strptime(colon_seperate(starttime),"%d/%m/%Y")
-    except Exception:
-        print("The input Start Time is invalid, please try DD/MM/YYYY...")
-        print("Exiting the program...")
-        sys.exit(0)
+try:
+    with open("test.txt","r",encoding="utf8") as f:
+        keyword = f.readline()
+        starttime = f.readline()
+        print(f"Key word is {keyword}")
+        print(f"...starting from {starttime}...")
+        try:
+            datetime.datetime.strptime(colon_seperate(starttime),"%d/%m/%Y")
+        except Exception:
+            print("The input Start Time is invalid, please try DD/MM/YYYY...")
+            print("Exiting the program...")
+            sys.exit(0)
+except FileNotFoundError:
+    print("Keyword and Start time not found... File test.txt must be present!")
+    sys.exit(0)
+
 
 search_box.send_keys(keyword)
 
