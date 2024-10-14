@@ -5,12 +5,14 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.firefox.options import Options
 import pandas as pd
 import time
 import os
 import datetime
+import sys
 
-def extract_code_KHLCNT(code):
+def colon_seperate(code):
     parts = code.split(":")
 
     if len(parts)>1:
@@ -18,15 +20,16 @@ def extract_code_KHLCNT(code):
     else:
         return ""
     
-def check_create_csv(filename,df):
+def check_create_output(filename,df):
     if os.path.exists(filename):
         os.remove(filename)
         print(f"Deleted file: {filename}")
-    df.to_csv(filename,index=False)
+    df.to_csv(filename,index=False,sep=",",encoding="utf-8")
     print(f"Created file: {filename}")
 
-
-driver = webdriver.Firefox()
+options = Options()
+options.add_argument('--headless')
+driver = webdriver.Firefox(options=options)
 
 driver.get("https://muasamcong.mpi.gov.vn/web/guest/")
 driver.maximize_window()
@@ -49,23 +52,25 @@ driver.execute_script("arguments[0].setAttribute('checked', 'checked')", radio1)
 radio_khlcnt =  driver.find_element(By.CSS_SELECTOR,".check-box-parent > div:nth-child(2)")
 radio_khlcnt.click()
 
-#radio_khlcnt = driver.find_element(by=By.ID,value="radio-khlcnt")
-#driver.execute_script("arguments[0].setAttribute('checked', 'checked')", radio_khlcnt)
-#radio_khlcnt.click()
-
-#radio_tbmt = driver.find_element(by=By.ID,value="radio-tbmt")
-#driver.execute_script("arguments[0].removeAttribute('checked')", radio_tbmt)
-#radio_tbmt.click()
-
-
 
 investorChecked = driver.find_element(By.CSS_SELECTOR,"div.content__search__item:nth-child(3) > input:nth-child(1)")
 investorChecked.click()
 
 #text_box = driver.find_element(by=By.NAME, value="my-text")
 search_box = driver.find_element(by=By.NAME,value="keyword")
-f=open("test.txt","r",encoding="utf8")
-search_box.send_keys(f.read())
+with open("test.txt","r",encoding="utf8") as f:
+    keyword = f.readline()
+    starttime = f.readline()
+    print(f"Key word is {keyword}")
+    print(f"...starting from {starttime}...")
+    try:
+        datetime.datetime.strptime(colon_seperate(starttime),"%d/%m/%Y")
+    except Exception:
+        print("The input Start Time is invalid, please try DD/MM/YYYY...")
+        print("Exiting the program...")
+        sys.exit(0)
+
+search_box.send_keys(keyword)
 
 submit_button = driver.find_element(by=By.CLASS_NAME, value="search-button")
 
@@ -89,13 +94,13 @@ while is_enabled == True:
     
     for k,v in zip(p_code,p_approved_date):
         try:
-            code_KHLCNT[(extract_code_KHLCNT(k.text))] = v
+            code_KHLCNT[(colon_seperate(k.text))] = v
         except StaleElementReferenceException:
             #re-find
             print("Stale element encountered, skipping...")
             
 
-    print(len(code_KHLCNT))
+    print(f"{len(code_KHLCNT)} entries collected...")
 
 
     try:
@@ -120,9 +125,12 @@ while is_enabled == True:
 
         driver.implicitly_wait(20) #wait for content to load
 
+df_raw_code = pd.DataFrame([k for k in code_KHLCNT.keys()])
+df_raw_code.to_csv("Raw-Plan-Code.csv")
+print("File created: Raw-Plan-Code")
 #filter time
-filtered_code_by_time = {key: value for key, value in code_KHLCNT.items() if datetime.datetime.strptime(value,"%d/%m/%Y") > datetime.datetime.strptime("01/07/2024","%d/%m/%Y")}
-print(len(filtered_code_by_time))
+filtered_code_by_time = {key: value for key, value in code_KHLCNT.items() if datetime.datetime.strptime(value,"%d/%m/%Y") >= datetime.datetime.strptime(colon_seperate(starttime),"%d/%m/%Y")}
+#print(len(filtered_code_by_time))
 
 #loop through code_KHLCNT and collect data
 if len(filtered_code_by_time)>0:
@@ -157,12 +165,10 @@ if len(filtered_code_by_time)>0:
             for row in table_body.find_elements(By.TAG_NAME,"tr"): 
                 sub_plan = []        
                 cells = row.find_elements(By.TAG_NAME,"td")
-                for i in range(1,len(cells)): #skip the first td
-                    if (cells[i].text!=""): #skip Giam sat hoat dong nha thau (neu co)
-                        sub_plan.append(cells[i].text)
+                for i in range(1,len(cells)): 
+                    sub_plan.append(cells[i].text)
                 list_of_plans.append(sub_plan)
-            print(len(list_of_plans))
-
+            
             #close and switch back
             driver.back()
         except Exception:
@@ -171,7 +177,8 @@ if len(filtered_code_by_time)>0:
 driver.quit()
 
 if len(list_of_plans)>0:
-    df = pd.DataFrame(list_of_plans)
-    check_create_csv("ContractorPlan.csv",df)
-
+    df = pd.DataFrame(list_of_plans,columns=['Tên Chủ đầu tư', 'Tên gói thầu', 'Tóm tắt công việc chính','Lĩnh vực','Giá gói thầu (VND)','Chi tiết nguồn vốn','Hình thức LCNT','Phương thức LCNT','Thời gian tổ chức LCNT','Thời gian bắt đầu tổ chức LCNT','Loại hợp đồng','Thời gian thức hiện gói thầu','Tùy chọn mua thêm','Giám sát hoạt động đấu thầu (nếu có)','Tình trạng TBMT'])
+    
+    df.to_excel("Contractor-Plans.xlsx")
+    print("File created: Contractor Plans")
 
