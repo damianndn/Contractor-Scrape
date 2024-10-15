@@ -163,12 +163,13 @@ if len(filtered_code_by_time)>0:
             time.sleep(8)
 
             
-            table_body = driver.find_element(By.XPATH,"/html/body/div[1]/div[1]/section/div/div/div/div/section/div/div[2]/div/div/div[2]/main/div/div/div[1]/div[2]/div[1]/div[5]/div[2]/table/tbody")
+            table_body = driver.find_element(By.CSS_SELECTOR,"#table-pack > tbody:nth-child(2)")
             #table_body = WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located(By.XPATH,"/html/body/div[1]/div[1]/section/div/div/div/div/section/div/div[2]/div/div/div[2]/main/div/div/div[1]/div[2]/div[1]/div[5]/div[2]/table/tbody"))
 
             
             for row in table_body.find_elements(By.TAG_NAME,"tr"): 
-                sub_plan = []        
+                sub_plan = []
+                sub_plan.append(code)        
                 cells = row.find_elements(By.TAG_NAME,"td")
                 for i in range(1,len(cells)): 
                     sub_plan.append(cells[i].text)
@@ -182,7 +183,7 @@ if len(filtered_code_by_time)>0:
 driver.quit()
 
 if len(list_of_plans)>0:
-    df = pd.DataFrame(list_of_plans,columns=['Tên Chủ đầu tư', 'Tên gói thầu', 'Tóm tắt công việc chính','Lĩnh vực','Giá gói thầu (VND)','Chi tiết nguồn vốn','Hình thức LCNT','Phương thức LCNT','Thời gian tổ chức LCNT','Thời gian bắt đầu tổ chức LCNT','Loại hợp đồng','Thời gian thức hiện gói thầu','Tùy chọn mua thêm','Giám sát hoạt động đấu thầu (nếu có)','Tình trạng TBMT'])
+    df = pd.DataFrame(list_of_plans,columns=['Mã KHLCNT ','Tên Chủ đầu tư', 'Tên gói thầu', 'Tóm tắt công việc chính','Lĩnh vực','Giá gói thầu (VND)','Chi tiết nguồn vốn','Hình thức LCNT','Phương thức LCNT','Thời gian tổ chức LCNT','Thời gian bắt đầu tổ chức LCNT','Loại hợp đồng','Thời gian thức hiện gói thầu','Tùy chọn mua thêm','Giám sát hoạt động đấu thầu (nếu có)','Tình trạng TBMT'])
     
     df.to_excel("Contractor-Plans.xlsx")
     print("File created: Contractor Plans")
