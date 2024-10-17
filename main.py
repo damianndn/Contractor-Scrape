@@ -19,6 +19,13 @@ def colon_seperate(code):
         return parts[1].strip()
     else:
         return ""
+
+def dash_seperate(input):
+    parts = input.split("-")
+    if len(parts)>1:
+        return parts[0].strip()
+    else: 
+        return ""
     
 def check_create_output(filename,df):
     if os.path.exists(filename):
@@ -93,11 +100,17 @@ while is_enabled == True:
     p_code = WebDriverWait(driver, 10).until(
     EC.presence_of_all_elements_located((By.CLASS_NAME, "content__body__left__item__infor__code"))
     )
-    p_approved_date = []
-    for elem in driver.find_elements(By.CLASS_NAME,"content__body__right__item__infor__contract"):
-        p_approved_date.append(elem.find_element(By.TAG_NAME,"h5").text)
+    p_upload_date = []
+    for elem in driver.find_elements(By.CLASS_NAME,"content__body__left__item__infor__contract__other"):
+        h6element = elem.find_elements(By.TAG_NAME,"h6")
+        upload_date = h6element[1].text
+        if "VND" not in upload_date:
+            #print(datetime.datetime.strptime(colon_seperate(upload_date),"%d/%m/%Y"))
+            p_upload_date.append(dash_seperate(colon_seperate(upload_date)))
+        else:
+            continue
     
-    for k,v in zip(p_code,p_approved_date):
+    for k,v in zip(p_code,p_upload_date):
         try:
             code_KHLCNT[(colon_seperate(k.text))] = v
         except StaleElementReferenceException:
